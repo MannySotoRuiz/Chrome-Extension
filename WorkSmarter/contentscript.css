@@ -1,5 +1,11 @@
 .test-element {
-    border: 3px solid blue;
-    height: 100px;
-    width: 100%;
+  all: initial;
+  border: 3px solid blue;
+  height: 100px;
+  width: 100%;
+  z-index: 999999999;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: white;
 }
