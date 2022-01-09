@@ -1,8 +1,9 @@
 let startingMins = 5;
 let currentTime = startingMins * 60;
 let counter;
-let ifTimerOver = false;
-let urlStorage = [];
+let ifTimerOver = true;
+let originalURLs =[];
+let blockedDomains = [];
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.cmd === "STOP_TIMER") {
@@ -13,7 +14,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.cmd === "START_TIMER") {
     currentTime = request.when;
     startingMins = request.strarting;
-    //storeCurrrentTime();
+    storeCurrrentTime();
     storeStartingMins();
     startTimer();
     console.log("background.js - timer started");
@@ -28,21 +29,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     clearInterval(counter);
     resetTime();
   } else if (request.cmd === "STORE_URL") {
-    let tempURL = new URL(request.link);
+    //let tempURL = new URL(request.link);
+    let tempURL = request.link;
     storeURL(tempURL);
   } else if (request.cmd === "GET_DATA") {
-    sendResponse({ link: urlStorage });
+    sendResponse({ link: blockedDomains });
   } else if (request.cmd === "CLEAR_URLs") {
-    urlStorage = [];
+    blockedDomains = [];
+    originalURLs = [];
+  } else if (request.cmd === "DELETE_URL") {
+    let del = request.link;
+    deleteURL(del);
   }
 });
-
-const blockedDomains = [
-  "www.bbc.co.uk",
-  "www.google.com",
-  "www.facebook.com",
-  "www.twitter.com",
-];
 
 function attemptInject(tab, tabId) {
   let testURL = new URL(tab.url);
@@ -59,64 +58,73 @@ function attemptInject(tab, tabId) {
   }
 }
 
+
 // call this when URL of current tab is changed to see if contentscript.js needs to be injected or not
 try {
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     console.log(changeInfo, tab);
     if (changeInfo.status == "complete") {
-      // let testURL = new URL(tab.url);
-      // if url is in the blocked domains list
+      console.log("testing onUpdated");
       attemptInject(tab, tabId);
-      // if (!testURL.origin.includes('chrome') && !tab.url.includes('google')) {
-      //   if (changeInfo.status == 'complete') {
-      //     chrome.scripting.executeScript({
-      //       files: ['contentscript.js'],
-      //       target: {tabId: tab.id}
-      //     });
-      //     console.log(testURL.hostname);
-      //   }
-      // } else {
-      //   console.log('Invalid URL onUpdated');
-      // }
     }
   });
 } catch (e) {
+  console.log("Error with onUpdated");
   console.log(e);
 }
 
 // call this when the User changes tab and get the URL to see if contentscript.js needs to be injected or not
 try {
   chrome.tabs.onActivated.addListener(function (activeInfo) {
+    console.log("Tabs changed");
     getCurrentTab();
   });
 } catch (e) {
-  console.log("ERROR HAPPENED");
+  console.log("ERROR with onActivated");
   console.log(e);
 }
 
 ///////////////   FUNCTIONS    /////////////////////////
+
+// function stopContentTimer() {
+//   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+//     chrome.tabs.sendMessage(tabs[0].id, {isTimerOver: ifTimerOver}, function(response) {
+//       console.log(response);
+//     });
+//   });
+// }
+
+function displayBlockerUI() {
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, {isTimerOver: ifTimerOver}, function(response) {
+      console.log(response);
+    });
+  });
+}
+
 function getCurrentTab() {
   chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
     let url = tabs[0].url;
     let tab_Id = tabs[0].id;
     try {
       attemptInject(tabs[0], tab_Id);
-      // let urlConstr = new URL(url);
-      // console.log(!urlConstr.origin.includes("chrome"));
-      // console.log(!url.includes("google"));
-      // if (!urlConstr.origin.includes("chrome") && !url.includes("google")) {
-      //   console.log("execute content script");
-      //   console.log(urlConstr.hostname);
-      //   chrome.scripting.executeScript({
-      //     files: ["contentscript.js"],
-      //     target: { tabId: tab_Id },
-      //   });
-      //   console.log("changed content here");
-      // } else {
-      //   console.log("chrome:// or google.com, do nothing");
-      // }
     } catch (e) {
       console.log("ERROR HAPPENED - " + e);
+    }
+  });
+}
+
+function allTabs() {
+  chrome.tabs.query({}, function(tabs) {
+    for (let i = 0; i < tabs.length; i++) {
+      console.log(tabs[i].url);
+      // if (ifValidURL(tabs[i].url)) {
+      //   let tempURL = new URL(tabs[i]);
+      //   let tempDomain = tempURL.hostname;
+      //   console.log(tempDomain);
+      // } else {
+      //   console.log("NOT A VALID URL");
+      // }
     }
   });
 }
@@ -124,6 +132,8 @@ function getCurrentTab() {
 function startTimer() {
   counter = setInterval(UpdateCountDown, 1000);
   ifTimerOver = false;
+  //allTabs();
+  displayBlockerUI();
 }
 
 function stopTimer() {
@@ -138,14 +148,14 @@ function resetTime() {
   storeStartingMins();
   storeCurrrentTime();
   counter = null;
-  //ifTimerOver = false; // why here false but true in the method above?
   clearLocalStorage();
 }
 
 function UpdateCountDown() {
-  getCurrentTime();
+  //getCurrentTime();
   currentTime--;
   storeCurrrentTime();
+  getCurrentTime();
   const mins = Math.floor(currentTime / 60);
   let secs = currentTime % 60;
   console.log(`TotalSeconds - ${currentTime}`);
@@ -156,17 +166,29 @@ function UpdateCountDown() {
 }
 
 function storeURL(userURL) {
+  let url = new URL(userURL);
   let check = false;
-  for (let i = 0; i < urlStorage.length; i++) {
-    if (urlStorage[i] == userURL.hostname) {
+  for (let i = 0; i < blockedDomains.length; i++) {
+    if (blockedDomains[i] == url.hostname) {
       check = true;
       break;
     }
   }
   if (!check) {
-    urlStorage.push(userURL.hostname);
+    originalURLs.push(userURL);
+    blockedDomains.push(url.hostname);
     console.log("added url");
   }
+}
+
+function deleteURL(deleteURL) {
+  for (let i = 0; i < blockedDomains.length; i++) {
+    let testDomain = blockedDomains[i];
+    if (deleteURL.includes(testDomain)) {
+        blockedDomains.splice(i, 1);
+        break;
+    }
+}
 }
 
 function storeCurrrentTime() {
@@ -202,4 +224,14 @@ function clearLocalStorage() {
       console.error(error);
     }
   });
+}
+
+function ifValidURL(site) {
+  try {
+      const url = new URL(site);
+      return true;
+  } catch (error) {
+      console.log('INVALID URL');
+      return false;
+  }
 }
