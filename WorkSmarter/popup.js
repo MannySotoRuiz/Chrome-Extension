@@ -56,6 +56,11 @@ chrome.runtime.sendMessage({ cmd: 'GET_TIME' }, response => {
     document.getElementById('incorrectFormat').classList.add('hidden');
     document.getElementById('alreadyExists').classList.add('hidden');
     document.getElementById('cantEdit').classList.remove('hidden');
+    let deleteURLButtons = document.querySelectorAll(".emojiDeleteURL");
+    for (let i = 0; i < deleteURLButtons.length; i++) {
+      let temp = deleteURLButtons[i];
+      deleteURLButtons[i].style.pointerEvents = "none";
+    }
 
     // timer started and reached 0 seconds, completed
     if (currentTime == 0 && response.timerOver == true) {
@@ -64,6 +69,11 @@ chrome.runtime.sendMessage({ cmd: 'GET_TIME' }, response => {
       give_upBtn.style.display = 'none';
       startBtn.style.display = 'none';
       resetBtn.style.display = 'inline-block';
+      let deleteURLButtons = document.querySelectorAll(".emojiDeleteURL");
+      for (let i = 0; i < deleteURLButtons.length; i++) {
+        let temp = deleteURLButtons[i];
+        deleteURLButtons[i].style.pointerEvents = "auto";
+      }
 
     // special cases
     } else {
@@ -77,6 +87,11 @@ chrome.runtime.sendMessage({ cmd: 'GET_TIME' }, response => {
         submitBtn.style.pointerEvents = 'auto';
         clearBtn.style.pointerEvents = 'auto';
         document.getElementById('cantEdit').classList.add('hidden');
+        let deleteURLButtons = document.querySelectorAll(".emojiDeleteURL");
+        for (let i = 0; i < deleteURLButtons.length; i++) {
+          let temp = deleteURLButtons[i];
+          deleteURLButtons[i].style.pointerEvents = "auto";
+        }
 
       // timer is still going
       } else {
@@ -131,6 +146,11 @@ function startTimer() {
   document.getElementById('alreadyExists').classList.add('hidden');
   document.getElementById('cantEdit').classList.remove('hidden');
   hideMinusPlus();
+  let deleteURLButtons = document.querySelectorAll(".emojiDeleteURL");
+  for (let i = 0; i < deleteURLButtons.length; i++) {
+    let temp = deleteURLButtons[i];
+    deleteURLButtons[i].style.pointerEvents = "none";
+  }
 }
 
 // method that shows the Minus/Plus images
@@ -214,6 +234,11 @@ function UpdateCountDown() {
     submitBtn.style.pointerEvents = 'auto';
     clearBtn.style.pointerEvents = 'auto';
     document.getElementById('cantEdit').classList.remove('hidden');
+    let deleteURLButtons = document.querySelectorAll(".emojiDeleteURL");
+    for (let i = 0; i < deleteURLButtons.length; i++) {
+      let temp = deleteURLButtons[i];
+      deleteURLButtons[i].style.pointerEvents = "auto";
+    }
   }
 }
 
@@ -261,6 +286,11 @@ function yesGiveUp() {
     question.style.display = 'none';
     yesBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
+    let deleteURLButtons = document.querySelectorAll(".emojiDeleteURL");
+    for (let i = 0; i < deleteURLButtons.length; i++) {
+      let temp = deleteURLButtons[i];
+      deleteURLButtons[i].style.pointerEvents = "auto";
+    }
   });
 }
 
